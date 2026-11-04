@@ -7,6 +7,7 @@ from app.api.routes import router
 from app.core.config import settings
 from app.services.market_data import MarketDataService
 
+from app.api.websocket import router as websocket_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,8 +29,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(router)
-
 
 @app.get("/health")
 async def health_check():
@@ -38,3 +37,6 @@ async def health_check():
         "application": settings.APP_NAME,
         "environment": settings.APP_ENV,
     }
+
+app.include_router(router)
+app.include_router(websocket_router)
