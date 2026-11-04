@@ -11,3 +11,10 @@ class ExchangeRate(BaseModel):
     ask: Decimal
     timestamp: datetime
     source: str
+
+
+class BitcoinPrice(BaseModel):
+    pair: str
+    price: Decimal
+    timestamp: datetime
+    source: str
