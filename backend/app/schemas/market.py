@@ -28,3 +28,10 @@ class Candle(BaseModel):
     low: Decimal
     close: Decimal
     volume: Decimal
+
+
+class ExchangeRateHistory(BaseModel):
+    timestamp: datetime
+    bid: Decimal
+    ask: Decimal
+    mid: Decimal

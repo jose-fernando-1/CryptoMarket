@@ -5,7 +5,7 @@ from decimal import Decimal
 import httpx
 
 from app.core.config import settings
-from app.schemas.market import ExchangeRate
+from app.schemas.market import ExchangeRate, ExchangeRateHistory
 
 
 class ExchangeRateService:
@@ -30,4 +30,43 @@ class ExchangeRateService:
                 tz=timezone.utc
             ),
             source="awesomeapi"
+        )
+
+
+    async def get_usd_brl_history(
+        self,
+        limit: int = 60,
+    ) -> list[ExchangeRateHistory]:
+
+        if not 1 <= limit <= 100:
+            raise ValueError("limit deve estar entre 1 e 100")
+
+        url = f"{self.base_url}/USD-BRL/{limit}"
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            data = response.json()
+
+        history = []
+
+        for item in data:
+            bid = Decimal(item["bid"])
+            ask = Decimal(item["ask"])
+
+            history.append(
+                ExchangeRateHistory(
+                    timestamp=datetime.fromtimestamp(
+                        int(item["timestamp"]),
+                        tz=timezone.utc,
+                    ),
+                    bid=bid,
+                    ask=ask,
+                    mid=(bid + ask) / Decimal("2"),
+                )
+            )
+
+        return sorted(
+            history,
+            key=lambda rate: rate.timestamp,
         )

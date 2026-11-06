@@ -13,6 +13,9 @@ from app.services.coinbase import CoinbaseService
 
 from fastapi import Request
 
+from fastapi import Query
+from app.schemas.market import ExchangeRateHistory
+
 router = APIRouter(prefix="/api/v1", tags=["Market"])
 
 exchange_service = ExchangeRateService()
@@ -86,4 +89,21 @@ async def get_bitcoin_history(
         raise HTTPException(
             status_code=503,
             detail="Histórico Coinbase indisponível",
+        ) from exc
+
+@router.get(
+    "/history/usd-brl",
+    response_model=list[ExchangeRateHistory],
+)
+async def get_usd_brl_history(
+    limit: int = Query(default=60, ge=1, le=100),
+):
+    try:
+        return await exchange_service.get_usd_brl_history(
+            limit=limit
+        )
+    except (httpx.HTTPError, KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Histórico USD/BRL indisponível",
         ) from exc
