@@ -35,3 +35,11 @@ class ExchangeRateHistory(BaseModel):
     bid: Decimal
     ask: Decimal
     mid: Decimal
+
+
+class BitcoinBRLHistory(BaseModel):
+    timestamp: datetime
+    btc_usd: Decimal
+    usd_brl: Decimal
+    btc_brl: Decimal
+    fx_timestamp: datetime

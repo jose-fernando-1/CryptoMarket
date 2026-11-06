@@ -16,9 +16,13 @@ from fastapi import Request
 from fastapi import Query
 from app.schemas.market import ExchangeRateHistory
 
+from app.schemas.market import BitcoinBRLHistory
+from app.services.history import MarketHistoryService
+
 router = APIRouter(prefix="/api/v1", tags=["Market"])
 
 exchange_service = ExchangeRateService()
+history_service = MarketHistoryService()
 
 
 @router.get("/exchange-rate", response_model=ExchangeRate)
@@ -106,4 +110,21 @@ async def get_usd_brl_history(
         raise HTTPException(
             status_code=503,
             detail="Histórico USD/BRL indisponível",
+        ) from exc
+
+@router.get(
+    "/history/btc-brl",
+    response_model=list[BitcoinBRLHistory],
+)
+async def get_btc_brl_history(
+    limit: int = Query(default=60, ge=1, le=300),
+):
+    try:
+        return await history_service.get_btc_brl_history(
+            limit=limit
+        )
+    except (httpx.HTTPError, KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Histórico BTC/BRL indisponível",
         ) from exc
