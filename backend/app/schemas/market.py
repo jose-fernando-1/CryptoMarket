@@ -18,3 +18,13 @@ class BitcoinPrice(BaseModel):
     price: Decimal
     timestamp: datetime
     source: str
+
+
+
+class Candle(BaseModel):
+    timestamp: datetime
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: Decimal
