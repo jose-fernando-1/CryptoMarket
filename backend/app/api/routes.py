@@ -5,6 +5,12 @@ from fastapi import APIRouter, HTTPException
 from app.schemas.market import ExchangeRate
 from app.services.exchange_rate import ExchangeRateService
 
+from datetime import datetime, timedelta, timezone
+from typing import Literal
+
+from app.schemas.market import Candle
+from app.services.coinbase import CoinbaseService
+
 from fastapi import Request
 
 router = APIRouter(prefix="/api/v1", tags=["Market"])
@@ -35,3 +41,49 @@ async def get_market(request: Request):
         )
 
     return snapshot
+
+Granularity = Literal[
+    "ONE_MINUTE",
+    "FIVE_MINUTE",
+    "FIFTEEN_MINUTE",
+    "ONE_HOUR",
+    "ONE_DAY",
+]
+
+SECONDS = {
+    "ONE_MINUTE": 60,
+    "FIVE_MINUTE": 300,
+    "FIFTEEN_MINUTE": 900,
+    "ONE_HOUR": 3600,
+    "ONE_DAY": 86400,
+}
+
+
+@router.get("/history/btc", response_model=list[Candle])
+async def get_bitcoin_history(
+    granularity: Granularity = "ONE_MINUTE",
+    limit: int = 60,
+):
+    if not 1 <= limit <= 300:
+        raise HTTPException(
+            status_code=422,
+            detail="limit deve estar entre 1 e 300",
+        )
+
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(
+        seconds=SECONDS[granularity] * limit
+    )
+
+    try:
+        service = CoinbaseService()
+        return await service.get_candles(
+            start=start,
+            end=end,
+            granularity=granularity,
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Histórico Coinbase indisponível",
+        ) from exc

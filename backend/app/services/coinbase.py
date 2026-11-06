@@ -6,11 +6,11 @@ from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from decimal import Decimal
 
+import httpx
 import websockets
 
 from app.core.config import settings
-from app.schemas.market import BitcoinPrice
-
+from app.schemas.market import BitcoinPrice, Candle
 
 logger = logging.getLogger(__name__)
 
@@ -78,3 +78,45 @@ class CoinbaseService:
             )
             await asyncio.sleep(retry_delay)
             retry_delay = min(retry_delay * 2, 30)
+
+
+    async def get_candles(
+        self,
+        start: datetime,
+        end: datetime,
+        granularity: str = "ONE_MINUTE",
+    ) -> list[Candle]:
+
+        url = (
+            f"{settings.COINBASE_REST_URL}"
+            f"/market/products/BTC-USD/candles"
+        )
+
+        params = {
+            "start": str(int(start.timestamp())),
+            "end": str(int(end.timestamp())),
+            "granularity": granularity,
+            "limit": 300,
+        }
+
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+        candles = [
+            Candle(
+                timestamp=datetime.fromtimestamp(
+                    int(item["start"]),
+                    tz=timezone.utc,
+                ),
+                open=Decimal(item["open"]),
+                high=Decimal(item["high"]),
+                low=Decimal(item["low"]),
+                close=Decimal(item["close"]),
+                volume=Decimal(item["volume"]),
+            )
+            for item in data["candles"]
+        ]
+
+        return sorted(candles, key=lambda c: c.timestamp)
